@@ -51,7 +51,10 @@ def test_bootstrap_is_reproducible_and_seed_sensitive():
 
 def test_degenerate_sample_gets_a_zero_width_interval():
     interval = bootstrap_mean([0.4] * 10)
-    assert (interval.lo, interval.point, interval.hi) == (0.4, 0.4, 0.4)
+    # Compared without exact float equality: summing ten 0.4s lands on a
+    # slightly different last bit depending on the interpreter.
+    assert interval.point == pytest.approx(0.4)
+    assert interval.lo == interval.point == interval.hi
     assert interval.half_width == 0.0
 
 

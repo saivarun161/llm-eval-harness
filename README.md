@@ -149,6 +149,7 @@ argues about the number.
 # myapp/eval_target.py
 from myapp import assistant
 
+
 def answer(question: str) -> str:
     return assistant.reply(question).text
 ```
@@ -171,6 +172,7 @@ evalharness run --target myapp.eval_target:answer \
 
 ```python
 from evalharness.scorers import Verdict, register
+
 
 @register("cites_a_source", "Answer must contain a doc:// citation")
 def cites_a_source(case, output: str) -> Verdict:
