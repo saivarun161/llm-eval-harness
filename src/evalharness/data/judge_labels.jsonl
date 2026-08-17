@@ -1,0 +1,73 @@
+{"__labels__": "judge_labels", "__version__": "1.0.0", "__scale__": "0 wrong, 1 partially correct, 2 correct"}
+{"id": "lab-001", "input": "What is the capital of Australia?", "expected": "Canberra", "prediction": "Canberra", "label": 2}
+{"id": "lab-002", "input": "What is the capital of Australia?", "expected": "Canberra", "prediction": "Based on what I know, the answer to that is Canberra. Hope that helps!", "label": 2}
+{"id": "lab-003", "input": "What is the capital of Australia?", "expected": "Canberra", "prediction": "Sydney", "label": 0}
+{"id": "lab-004", "input": "What is the capital of Australia?", "expected": "Canberra", "prediction": "I don't know.", "label": 0}
+{"id": "lab-005", "input": "What is the highest mountain in Africa?", "expected": "Mount Kilimanjaro", "prediction": "Kilimanjaro is the highest mountain on the continent", "label": 2}
+{"id": "lab-006", "input": "What is the highest mountain in Africa?", "expected": "Mount Kilimanjaro", "prediction": "Mount", "label": 0}
+{"id": "lab-007", "input": "What is the highest mountain in Africa?", "expected": "Mount Kilimanjaro", "prediction": "Mount Kenya", "label": 0}
+{"id": "lab-008", "input": "Which strait separates Europe from Africa at their closest point?", "expected": "The Strait of Gibraltar", "prediction": "The Strait", "label": 1}
+{"id": "lab-009", "input": "Which strait separates Europe from Africa at their closest point?", "expected": "The Strait of Gibraltar", "prediction": "Gibraltar", "label": 2}
+{"id": "lab-010", "input": "Which strait separates Europe from Africa at their closest point?", "expected": "The Strait of Gibraltar", "prediction": "The Bosphorus", "label": 0}
+{"id": "lab-011", "input": "Which two countries share the longest international land border?", "expected": "Canada and the United States", "prediction": "Canada and the United States", "label": 2}
+{"id": "lab-012", "input": "Which two countries share the longest international land border?", "expected": "Canada and the United States", "prediction": "Canada and", "label": 1}
+{"id": "lab-013", "input": "Which two countries share the longest international land border?", "expected": "Canada and the United States", "prediction": "Russia and China", "label": 0}
+{"id": "lab-014", "input": "How many bones are there in the adult human body?", "expected": "206 bones", "prediction": "206 bones", "label": 2}
+{"id": "lab-015", "input": "How many bones are there in the adult human body?", "expected": "206 bones", "prediction": "An adult skeleton has 206 of them", "label": 2}
+{"id": "lab-016", "input": "How many bones are there in the adult human body?", "expected": "206 bones", "prediction": "306 bones", "label": 0}
+{"id": "lab-017", "input": "How many bones are there in the adult human body?", "expected": "206 bones", "prediction": "Somewhere around two hundred", "label": 1}
+{"id": "lab-018", "input": "At what temperature does water boil at sea level, in Celsius?", "expected": "100 degrees Celsius", "prediction": "100 degrees Celsius", "label": 2}
+{"id": "lab-019", "input": "At what temperature does water boil at sea level, in Celsius?", "expected": "100 degrees Celsius", "prediction": "100", "label": 1}
+{"id": "lab-020", "input": "At what temperature does water boil at sea level, in Celsius?", "expected": "100 degrees Celsius", "prediction": "90 degrees Celsius", "label": 0}
+{"id": "lab-021", "input": "Approximately how fast does light travel in a vacuum?", "expected": "About 300,000 kilometres per second", "prediction": "Roughly 300,000 km every second", "label": 2}
+{"id": "lab-022", "input": "Approximately how fast does light travel in a vacuum?", "expected": "About 300,000 kilometres per second", "prediction": "About 300,000 kilometres per hour", "label": 0}
+{"id": "lab-023", "input": "Approximately how fast does light travel in a vacuum?", "expected": "About 300,000 kilometres per second", "prediction": "Very fast, faster than anything else", "label": 1}
+{"id": "lab-024", "input": "What does DNA stand for?", "expected": "Deoxyribonucleic acid", "prediction": "Deoxyribonucleic acid", "label": 2}
+{"id": "lab-025", "input": "What does DNA stand for?", "expected": "Deoxyribonucleic acid", "prediction": "It is short for deoxyribonucleic acid", "label": 2}
+{"id": "lab-026", "input": "What does DNA stand for?", "expected": "Deoxyribonucleic acid", "prediction": "Dinucleic acid", "label": 0}
+{"id": "lab-027", "input": "What is the chemical symbol for potassium?", "expected": "K", "prediction": "K", "label": 2}
+{"id": "lab-028", "input": "What is the chemical symbol for potassium?", "expected": "K", "prediction": "P", "label": 0}
+{"id": "lab-029", "input": "Which gas do plants absorb from the air during photosynthesis?", "expected": "Carbon dioxide", "prediction": "They take in carbon dioxide from the air", "label": 2}
+{"id": "lab-030", "input": "Which gas do plants absorb from the air during photosynthesis?", "expected": "Carbon dioxide", "prediction": "Oxygen", "label": 0}
+{"id": "lab-031", "input": "Which gas do plants absorb from the air during photosynthesis?", "expected": "Carbon dioxide", "prediction": "Carbon", "label": 1}
+{"id": "lab-032", "input": "In which year did the Berlin Wall fall?", "expected": "1989", "prediction": "1989", "label": 2}
+{"id": "lab-033", "input": "In which year did the Berlin Wall fall?", "expected": "1989", "prediction": "It came down in 1989", "label": 2}
+{"id": "lab-034", "input": "In which year did the Berlin Wall fall?", "expected": "1989", "prediction": "1991", "label": 0}
+{"id": "lab-035", "input": "In which year did the Berlin Wall fall?", "expected": "1989", "prediction": "Late in the 1980s", "label": 1}
+{"id": "lab-036", "input": "Who was the first person to walk on the Moon?", "expected": "Neil Armstrong", "prediction": "Armstrong was the first to set foot there", "label": 2}
+{"id": "lab-037", "input": "Who was the first person to walk on the Moon?", "expected": "Neil Armstrong", "prediction": "Buzz Aldrin", "label": 0}
+{"id": "lab-038", "input": "Who was the first person to walk on the Moon?", "expected": "Neil Armstrong", "prediction": "Neil", "label": 1}
+{"id": "lab-039", "input": "Which civilisation built Machu Picchu?", "expected": "The Inca", "prediction": "It was built by the Inca", "label": 2}
+{"id": "lab-040", "input": "Which civilisation built Machu Picchu?", "expected": "The Inca", "prediction": "The Maya", "label": 0}
+{"id": "lab-041", "input": "Who wrote Pride and Prejudice?", "expected": "Jane Austen", "prediction": "Jane Austen", "label": 2}
+{"id": "lab-042", "input": "Who wrote Pride and Prejudice?", "expected": "Jane Austen", "prediction": "Charlotte Bronte", "label": 0}
+{"id": "lab-043", "input": "Who wrote Pride and Prejudice?", "expected": "Jane Austen", "prediction": "Austen", "label": 2}
+{"id": "lab-044", "input": "Who wrote One Hundred Years of Solitude?", "expected": "Gabriel Garcia Marquez", "prediction": "Garcia Marquez is the author", "label": 2}
+{"id": "lab-045", "input": "Who wrote One Hundred Years of Solitude?", "expected": "Gabriel Garcia Marquez", "prediction": "Mario Vargas Llosa", "label": 0}
+{"id": "lab-046", "input": "Who wrote One Hundred Years of Solitude?", "expected": "Gabriel Garcia Marquez", "prediction": "Gabriel", "label": 1}
+{"id": "lab-047", "input": "What is 15 percent of 240?", "expected": "36", "prediction": "36", "label": 2}
+{"id": "lab-048", "input": "What is 15 percent of 240?", "expected": "36", "prediction": "24", "label": 0}
+{"id": "lab-049", "input": "What is 15 percent of 240?", "expected": "36", "prediction": "Fifteen percent of 240 comes to 36", "label": 2}
+{"id": "lab-050", "input": "How many minutes are in a full day?", "expected": "1,440 minutes", "prediction": "A day contains 1,440 minutes", "label": 2}
+{"id": "lab-051", "input": "How many minutes are in a full day?", "expected": "1,440 minutes", "prediction": "2,400 minutes", "label": 0}
+{"id": "lab-052", "input": "How many minutes are in a full day?", "expected": "1,440 minutes", "prediction": "1,440", "label": 2}
+{"id": "lab-053", "input": "What is 0 degrees Celsius in Fahrenheit?", "expected": "32 degrees Fahrenheit", "prediction": "Freezing point is 32 Fahrenheit", "label": 2}
+{"id": "lab-054", "input": "What is 0 degrees Celsius in Fahrenheit?", "expected": "32 degrees Fahrenheit", "prediction": "0 degrees Fahrenheit", "label": 0}
+{"id": "lab-055", "input": "Why does the Moon go through phases?", "expected": "Because we see different fractions of its sunlit half as it orbits the Earth", "prediction": "As it orbits us we see a changing fraction of the half that the Sun lights", "label": 2}
+{"id": "lab-056", "input": "Why does the Moon go through phases?", "expected": "Because we see different fractions of its sunlit half as it orbits the Earth", "prediction": "Because the Earth casts its shadow across the Moon each month", "label": 0}
+{"id": "lab-057", "input": "Why does the Moon go through phases?", "expected": "Because we see different fractions of its sunlit half as it orbits the Earth", "prediction": "Because we see different fractions of its sunlit", "label": 1}
+{"id": "lab-058", "input": "What causes the seasons on Earth?", "expected": "The tilt of the rotational axis, which changes how directly sunlight strikes each hemisphere", "prediction": "Axial tilt changes how directly sunlight hits each hemisphere through the year", "label": 2}
+{"id": "lab-059", "input": "What causes the seasons on Earth?", "expected": "The tilt of the rotational axis, which changes how directly sunlight strikes each hemisphere", "prediction": "The changing distance between the Earth and the Sun over the year", "label": 0}
+{"id": "lab-060", "input": "What causes the seasons on Earth?", "expected": "The tilt of the rotational axis, which changes how directly sunlight strikes each hemisphere", "prediction": "The tilt of the rotational axis, which changes", "label": 1}
+{"id": "lab-061", "input": "Why does the sky look blue?", "expected": "Shorter blue wavelengths scatter more strongly in the atmosphere than longer ones", "prediction": "Blue light has a shorter wavelength and scatters more in the air", "label": 2}
+{"id": "lab-062", "input": "Why does the sky look blue?", "expected": "Shorter blue wavelengths scatter more strongly in the atmosphere than longer ones", "prediction": "The sky reflects the colour of the oceans below it", "label": 0}
+{"id": "lab-063", "input": "Why does the sky look blue?", "expected": "Shorter blue wavelengths scatter more strongly in the atmosphere than longer ones", "prediction": "Something about wavelengths scattering, I am not sure of the details", "label": 1}
+{"id": "lab-064", "input": "What does an API rate limit do?", "expected": "It caps how many requests a client may make in a time window, protecting the service from overload", "prediction": "It restricts the number of requests a caller can send per window so the service is not overwhelmed", "label": 2}
+{"id": "lab-065", "input": "What does an API rate limit do?", "expected": "It caps how many requests a client may make in a time window, protecting the service from overload", "prediction": "It slows every response down to a fixed latency so clients cannot measure the backend", "label": 0}
+{"id": "lab-066", "input": "What does an API rate limit do?", "expected": "It caps how many requests a client may make in a time window, protecting the service from overload", "prediction": "It caps how many requests a client may", "label": 1}
+{"id": "lab-067", "input": "What is the purpose of a database index?", "expected": "It keeps a sorted structure over selected columns so lookups avoid scanning every row", "prediction": "It maintains an ordered structure on chosen columns so a query need not scan the whole table", "label": 2}
+{"id": "lab-068", "input": "What is the purpose of a database index?", "expected": "It keeps a sorted structure over selected columns so lookups avoid scanning every row", "prediction": "It compresses the table on disk so that it occupies fewer pages", "label": 0}
+{"id": "lab-069", "input": "What is the purpose of a database index?", "expected": "It keeps a sorted structure over selected columns so lookups avoid scanning every row", "prediction": "It keeps a sorted structure over selected", "label": 1}
+{"id": "lab-070", "input": "Why is idempotency useful in a retry-heavy system?", "expected": "Repeating the same request produces the same result, so a retry after an unclear failure cannot double-apply the effect", "prediction": "Because sending the request twice has the same effect as sending it once, a retry is safe when the first outcome is unknown", "label": 2}
+{"id": "lab-071", "input": "Why is idempotency useful in a retry-heavy system?", "expected": "Repeating the same request produces the same result, so a retry after an unclear failure cannot double-apply the effect", "prediction": "Because it guarantees that every request is delivered to the server exactly once over the network", "label": 0}
+{"id": "lab-072", "input": "Why is idempotency useful in a retry-heavy system?", "expected": "Repeating the same request produces the same result, so a retry after an unclear failure cannot double-apply the effect", "prediction": "Repeating the same request produces the same result, so a retry", "label": 1}
