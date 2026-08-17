@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ruff
+        run: pipx install ruff==0.16.3
+
+      - run: ruff check .
+      - run: ruff format --check .
+
+  test:
+    name: test (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install the package
+        run: |
+          uv venv --python ${{ matrix.python-version }} .venv
+          uv pip install -p .venv/bin/python -e ".[dev]"
+
+      - name: Run the test suite
+        run: .venv/bin/python -m pytest -q --cov --cov-report=term-missing
+
+  gate:
+    # The harness exists to gate other people's builds, so this job points it at
+    # itself: if the regression gate ever stops blocking a known regression, or
+    # starts blocking a known-good change, the build goes red.
+    name: end-to-end gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install the package
+        run: |
+          uv venv --python 3.12 .venv
+          uv pip install -p .venv/bin/python -e "."
+
+      - name: Run the quickstart demo
+        run: .venv/bin/evalharness demo
+
+      - name: Record three runs
+        run: |
+          set -euo pipefail
+          for target in baseline candidate regressed; do
+            .venv/bin/evalharness run --target "$target" --out "runs/$target.json"
+          done
+          test -s runs/baseline.json
+
+      - name: The judge must still agree with the human labels
+        run: .venv/bin/evalharness calibrate --min-kappa 0.6
+
+      - name: A genuine improvement passes the gate
+        run: |
+          .venv/bin/evalharness gate \
+            --baseline runs/baseline.json \
+            --candidate runs/candidate.json \
+            --tolerance 0.02
+
+      - name: A genuine regression fails the gate
+        run: |
+          set +e
+          .venv/bin/evalharness gate \
+            --baseline runs/baseline.json \
+            --candidate runs/regressed.json \
+            --tolerance 0.02
+          status=$?
+          set -e
+          test "$status" -eq 1 || { echo "expected exit 1, got $status"; exit 1; }
+
+      - name: An eval set too small to resolve the tolerance is reported, not hidden
+        run: |
+          set +e
+          .venv/bin/evalharness gate \
+            --baseline runs/baseline.json \
+            --candidate runs/candidate.json \
+            --require-mde 0.001 --json | tee power.json
+          status=${PIPESTATUS[0]}
+          set -e
+          test "$status" -eq 1 || { echo "expected exit 1, got $status"; exit 1; }
+          grep -q '"underpowered": true' power.json
+
+      - name: Comparing across a changed dataset is refused
+        run: |
+          set +e
+          python - <<'PY'
+          import json, pathlib
+          payload = json.loads(pathlib.Path("runs/candidate.json").read_text())
+          payload["dataset"]["fingerprint"] = "0000000000000000"
+          pathlib.Path("runs/drifted.json").write_text(json.dumps(payload))
+          PY
+          .venv/bin/evalharness compare runs/baseline.json runs/drifted.json
+          status=$?
+          set -e
+          test "$status" -eq 2 || { echo "expected exit 2, got $status"; exit 1; }
