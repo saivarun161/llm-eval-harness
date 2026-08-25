@@ -103,6 +103,64 @@ def test_profile_weights_are_validated():
         Profile("bad", (1.0,))
 
 
+def test_tag_shift_is_validated():
+    from evalharness.targets import Profile
+
+    with pytest.raises(ValueError, match=r"shifts tag 'x' by 2.0"):
+        Profile("bad", (1.0, 0.0, 0.0, 0.0, 0.0, 0.0), tag_shift={"x": 2.0})
+
+
+def test_tag_shift_degrades_only_the_tagged_slice():
+    from evalharness.targets import Profile
+
+    flat = Profile("flat", (0.5, 0.0, 0.0, 0.0, 0.5, 0.0))
+    shifted = Profile("shifted", (0.5, 0.0, 0.0, 0.0, 0.5, 0.0), tag_shift={"slow": 0.5})
+    order = {behaviour: i for i, behaviour in enumerate(BEHAVIOURS)}
+    for i in range(200):
+        case_id = f"c{i}"
+        untagged = shifted.behaviour_for(case_id, ("fast",))
+        assert untagged == flat.behaviour_for(case_id)
+        # The shift only ever moves a case down the ordering, never up.
+        assert order[shifted.behaviour_for(case_id, ("slow",))] >= order[untagged]
+
+
+def test_tag_shift_takes_the_largest_matching_tag_and_stays_in_range():
+    from evalharness.targets import Profile
+
+    profile = Profile(
+        "multi",
+        (0.5, 0.0, 0.0, 0.0, 0.5, 0.0),
+        tag_shift={"mild": 0.1, "severe": 1.0},
+    )
+    # 'severe' wins over 'mild' and pushes every case into the worst band the
+    # profile gives any weight to; the clamp keeps the draw inside the walk
+    # rather than letting it fall off the end into a behaviour with no mass.
+    assert all(profile.behaviour_for(f"c{i}", ("mild", "severe")) == "wrong" for i in range(50))
+
+
+def test_the_patchy_profile_hides_a_slice_regression_behind_a_flat_aggregate(
+    bundled: Dataset,
+):
+    from evalharness.compare import compare_runs
+    from evalharness.targets import resolve_target
+
+    runs = {
+        name: evaluate(bundled, resolve_target(name, bundled.cases), scorers=["judge"])
+        for name in ("baseline", "patchy")
+    }
+    aggregate = compare_runs(runs["baseline"], runs["patchy"], "judge", resamples=500)
+    assert aggregate.direction == "inconclusive"
+
+    geography = bundled.tag_index()["geography"]
+    sliced = compare_runs(
+        runs["baseline"].subset(geography),
+        runs["patchy"].subset(geography),
+        "judge",
+        resamples=500,
+    )
+    assert sliced.direction == "regression"
+
+
 def test_stable_uniform_is_deterministic_and_bounded():
     assert stable_uniform("case-1") == stable_uniform("case-1")
     assert stable_uniform("case-1") != stable_uniform("case-2")

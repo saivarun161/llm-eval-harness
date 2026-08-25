@@ -20,14 +20,19 @@ Every profile draws from one uniform value per case, so a case that is hard for
 one system is hard for all of them. That shared difficulty is exactly the
 structure the paired bootstrap exploits, and it is what makes the demo's
 comparison intervals tighter than the two runs' own intervals.
+
+One profile — ``patchy`` — additionally degrades on a single tag. Uneven
+quality is how real regressions usually arrive (a prompt change that helps
+prose and breaks arithmetic), and an aggregate mean is the one statistic
+guaranteed to hide it.
 """
 
 from __future__ import annotations
 
 import hashlib
 import importlib
-from collections.abc import Callable
-from dataclasses import dataclass
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field
 
 from .types import Case
 
@@ -59,6 +64,9 @@ class Profile:
     weights: tuple[float, ...]
     always_verbose: bool = False
     description: str = ""
+    #: Tag -> how far down the behaviour ordering cases carrying it are pushed.
+    #: A positive shift makes that slice worse without touching any other.
+    tag_shift: dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if len(self.weights) != len(BEHAVIOURS):
@@ -66,9 +74,18 @@ class Profile:
         total = sum(self.weights)
         if abs(total - 1.0) > 1e-9:
             raise ValueError(f"profile {self.name!r} weights sum to {total}, expected 1.0")
+        for tag, shift in self.tag_shift.items():
+            if not -1.0 <= shift <= 1.0:
+                raise ValueError(
+                    f"profile {self.name!r} shifts tag {tag!r} by {shift}, expected [-1, 1]"
+                )
 
-    def behaviour_for(self, case_id: str) -> str:
-        u = stable_uniform(case_id)
+    def behaviour_for(self, case_id: str, tags: Sequence[str] = ()) -> str:
+        # The shift moves the case's position within one shared draw rather
+        # than resampling it, so a slice-specific defect stays paired with the
+        # baseline case by case — which is what the comparison relies on.
+        shift = max((self.tag_shift.get(tag, 0.0) for tag in tags), default=0.0)
+        u = min(max(stable_uniform(case_id) + shift, 0.0), 1.0 - 1e-12)
         cumulative = 0.0
         for behaviour, weight in zip(BEHAVIOURS, self.weights, strict=True):
             cumulative += weight
@@ -103,6 +120,15 @@ PROFILES: dict[str, Profile] = {
         name="regressed",
         weights=(0.26, 0.13, 0.11, 0.12, 0.32, 0.06),
         description="a real quality regression",
+    ),
+    "patchy": Profile(
+        name="patchy",
+        weights=(0.66, 0.13, 0.12, 0.04, 0.05, 0.00),
+        tag_shift={"geography": 0.55},
+        # Tuned so the aggregate delta against the baseline lands on top of
+        # zero: the gain on the other slices pays for the loss on this one,
+        # exactly, which is the situation a headline mean cannot report.
+        description="better nearly everywhere, badly broken on the 'geography' slice",
     ),
 }
 
@@ -141,7 +167,7 @@ def builtin_target(profile_name: str, cases: list[Case] | tuple[Case, ...]) -> T
         case = by_input.get(question)
         if case is None:
             raise KeyError(f"built-in target received an unknown question: {question!r}")
-        behaviour = profile.behaviour_for(case.id)
+        behaviour = profile.behaviour_for(case.id, case.tags)
         return render(case, behaviour, always_verbose=profile.always_verbose)
 
     run.__name__ = f"builtin_{profile_name}"
