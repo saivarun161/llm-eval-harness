@@ -85,7 +85,7 @@ def test_run_rejects_an_unknown_target(capsys):
 @pytest.fixture
 def saved_runs(tmp_path, capsys):
     paths = {}
-    for name in ("baseline", "candidate", "regressed"):
+    for name in ("baseline", "candidate", "regressed", "patchy"):
         path = tmp_path / f"{name}.json"
         assert (
             main(
@@ -219,6 +219,141 @@ def test_gate_rejects_an_unknown_scorer(saved_runs, capsys):
     assert code == 2
 
 
+def test_slices_finds_what_the_gate_lets_through(saved_runs, capsys):
+    # The same pair of runs, through both commands: the gate passes because the
+    # aggregate is flat, and the slice report explains what the mean absorbed.
+    code, gate_out = run_cli(
+        capsys,
+        "gate",
+        "--baseline",
+        saved_runs["baseline"],
+        "--candidate",
+        saved_runs["patchy"],
+        "--tolerance",
+        "0.02",
+        "--resamples",
+        "400",
+    )
+    assert code == 0
+    assert "Regression gate: PASS" in gate_out
+
+    code, out = run_cli(
+        capsys,
+        "slices",
+        saved_runs["baseline"],
+        saved_runs["patchy"],
+        "--resamples",
+        "400",
+        "--fail-on-hidden",
+    )
+    assert code == 1
+    assert "geography" in out
+    assert "A headline mean would have shipped this." in out
+
+
+def test_slices_is_quiet_when_nothing_is_hidden(saved_runs, capsys):
+    code, out = run_cli(
+        capsys,
+        "slices",
+        saved_runs["baseline"],
+        saved_runs["candidate"],
+        "--resamples",
+        "400",
+        "--fail-on-hidden",
+    )
+    assert code == 0
+    assert "A headline mean" not in out
+
+
+def test_slices_does_not_double_fail_on_an_obvious_regression(saved_runs, capsys):
+    # 'regressed' fails the gate on the aggregate; the slice report has nothing
+    # to add and must not turn one regression into two red builds.
+    code, out = run_cli(
+        capsys,
+        "slices",
+        saved_runs["baseline"],
+        saved_runs["regressed"],
+        "--resamples",
+        "400",
+        "--fail-on-hidden",
+    )
+    assert code == 0
+    assert "REGRESSED" in out
+
+
+def test_slices_json_carries_the_correction(saved_runs, capsys):
+    code, out = run_cli(
+        capsys,
+        "slices",
+        saved_runs["baseline"],
+        saved_runs["patchy"],
+        "--resamples",
+        "400",
+        "--json",
+    )
+    assert code == 0
+    payload = json.loads(out)
+    assert payload["hidden_regressions"] == ["geography"]
+    assert payload["per_slice_confidence"] > payload["confidence"]
+    assert payload["skipped"] == [{"tag": "engineering", "n": 3}, {"tag": "math", "n": 4}]
+    assert payload["aggregate"]["direction"] == "inconclusive"
+
+
+def test_slices_can_show_uncorrected_intervals(saved_runs, capsys):
+    code, out = run_cli(
+        capsys,
+        "slices",
+        saved_runs["baseline"],
+        saved_runs["patchy"],
+        "--resamples",
+        "400",
+        "--no-correction",
+        "--json",
+    )
+    assert code == 0
+    assert json.loads(out)["per_slice_confidence"] == 0.95
+
+
+def test_slices_min_cases_changes_the_family(saved_runs, capsys):
+    code, out = run_cli(
+        capsys,
+        "slices",
+        saved_runs["baseline"],
+        saved_runs["patchy"],
+        "--min-cases",
+        "3",
+        "--resamples",
+        "200",
+        "--json",
+    )
+    assert code == 0
+    payload = json.loads(out)
+    assert payload["family_size"] == 10
+    assert payload["skipped"] == []
+
+
+def test_slices_refuses_mismatched_datasets(tmp_path, saved_runs, capsys):
+    drifted = tmp_path / "drifted.json"
+    payload = json.loads(Path(saved_runs["patchy"]).read_text())
+    payload["dataset"]["fingerprint"] = "deadbeefdeadbeef"
+    drifted.write_text(json.dumps(payload))
+    code, _ = run_cli(capsys, "slices", saved_runs["baseline"], str(drifted), "--resamples", "200")
+    assert code == 2
+    assert "fingerprint changed" in run_cli.stderr
+
+
+def test_slices_rejects_an_unknown_scorer(saved_runs, capsys):
+    code, _ = run_cli(
+        capsys,
+        "slices",
+        saved_runs["baseline"],
+        saved_runs["patchy"],
+        "--scorer",
+        "not_a_scorer",
+    )
+    assert code == 2
+
+
 def test_calibrate_reports_kappa(capsys):
     code, out = run_cli(capsys, "calibrate", "--json")
     assert code == 0
@@ -252,5 +387,7 @@ def test_demo_runs_end_to_end(capsys):
         "Regression gate: PASS",
         "Cohen's kappa",
         "INCONCLUSIVE",
+        "sliced by tag",
+        "A headline mean would have shipped this.",
     ):
         assert marker in out, marker

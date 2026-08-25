@@ -22,6 +22,7 @@ from .dataset import Dataset, list_builtins, load_dataset
 from .gate import evaluate_gate
 from .runner import evaluate, summarize
 from .scorers import DEFAULT_SCORERS, available, describe
+from .slices import DEFAULT_MIN_SLICE, compare_by_tag
 from .store import load_run, save_run
 from .targets import PROFILES, resolve_target
 from .types import RunResult
@@ -154,6 +155,35 @@ def cmd_compare(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_slices(args: argparse.Namespace) -> int:
+    baseline = load_run(args.baseline)
+    candidate = load_run(args.candidate)
+    try:
+        result = compare_by_tag(
+            baseline,
+            candidate,
+            args.scorer,
+            min_cases=args.min_cases,
+            resamples=args.resamples,
+            correct=not args.no_correction,
+            allow_dataset_drift=args.allow_dataset_drift,
+        )
+    except DatasetMismatch as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    if args.json:
+        print(json.dumps(result.to_json(), indent=2))
+    else:
+        print(report.render_slice_report(result))
+
+    # Exit 1 only for a regression the aggregate would not have caught. Slices
+    # that regressed alongside a regressed aggregate are already the `gate`
+    # command's business, and failing twice for one cause teaches nobody
+    # anything.
+    return 1 if args.fail_on_hidden and result.hidden_regressions else 0
+
+
 def cmd_calibrate(args: argparse.Namespace) -> int:
     examples = load_labels(args.labels)
     thresholds = None
@@ -264,6 +294,17 @@ def cmd_demo(args: argparse.Namespace) -> int:
     print("   The gate blocks the regression and stays quiet about the noise. A gate")
     print("   that fired on both would be switched off within a fortnight, and then")
     print("   the next real regression would ship.")
+    print()
+
+    print("6. A regression the aggregate cannot see at all.")
+    print(report.RULE)
+    sliced = compare_by_tag(runs["baseline"], runs["patchy"], "judge", resamples=resamples)
+    print(report.render_slice_report(sliced))
+    print()
+    print("   The 'patchy' system is better nearly everywhere and broken on one slice,")
+    print("   and the two cancel: the headline delta sits on zero, the gate passes, and")
+    print("   every geography answer got worse. Note the widened intervals — eight")
+    print("   slices tested at 95% would find a spurious one a third of the time.")
     return 0
 
 
@@ -313,6 +354,31 @@ def build_parser() -> argparse.ArgumentParser:
     compare_cmd.add_argument("--allow-dataset-drift", action="store_true")
     compare_cmd.add_argument("--json", action="store_true")
     compare_cmd.set_defaults(func=cmd_compare)
+
+    slices_cmd = sub.add_parser("slices", help="per-tag comparison: which part of the set moved")
+    slices_cmd.add_argument("baseline")
+    slices_cmd.add_argument("candidate")
+    slices_cmd.add_argument("--scorer", default="judge")
+    slices_cmd.add_argument(
+        "--min-cases",
+        type=int,
+        default=DEFAULT_MIN_SLICE,
+        help=f"smallest slice worth testing (default: {DEFAULT_MIN_SLICE})",
+    )
+    slices_cmd.add_argument(
+        "--no-correction",
+        action="store_true",
+        help="show uncorrected per-slice intervals (exploration only)",
+    )
+    slices_cmd.add_argument(
+        "--fail-on-hidden",
+        action="store_true",
+        help="exit 1 when a slice regressed and the aggregate did not",
+    )
+    slices_cmd.add_argument("--resamples", type=int, default=2000)
+    slices_cmd.add_argument("--allow-dataset-drift", action="store_true")
+    slices_cmd.add_argument("--json", action="store_true")
+    slices_cmd.set_defaults(func=cmd_slices)
 
     calibrate_cmd = sub.add_parser("calibrate", help="measure the judge against human labels")
     calibrate_cmd.add_argument("--labels", default=DEFAULT_LABELS)
