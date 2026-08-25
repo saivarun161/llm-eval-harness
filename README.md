@@ -35,8 +35,8 @@ pip install -e ".[dev]"
 evalharness demo
 ```
 
-The demo runs five simulated systems over the bundled 45-case dataset and walks
-through every claim above. Five things happen in order.
+The demo runs six simulated systems over the bundled 45-case dataset and walks
+through every claim above. Six things happen in order.
 
 **One. Four scorers look at the same outputs and disagree.**
 
@@ -93,6 +93,32 @@ assumed, and it is why the interval on kappa is there too.
 gate that fires on both gets switched off within a fortnight — and then the next
 real regression ships.
 
+**Six. A regression the aggregate cannot see at all.** The `patchy` system is
+better nearly everywhere and broken on one slice, and the two cancel:
+
+```
+  whole set  n=45   delta 0.003 [-0.106, 0.113]  FLAT     <- the gate passes
+
+tag              n   share    delta            interval    holm p  verdict
+------------------------------------------------------------------------------
+geography        8    18%   -0.455  [-0.801, -0.105]    0.1250  REGRESSED
+explanation      6    13%   -0.104  [-0.406,  0.230]    1.0000  FLAT
+entity          24    53%   -0.045  [-0.275,  0.208]    1.0000  FLAT
+...
+history          8    18%    0.181  [ 0.015,  0.505]    0.7500  IMPROVED
+
+  Intervals are 99.38% per slice, so that all 8 together hold 95%.
+  Untested, under 5 cases: engineering (n=3), math (n=4). Too small to
+  resolve anything, not known to be fine.
+
+  The aggregate is not a regression, but 'geography' is. A headline mean
+  would have shipped this.
+```
+
+Quality 0.780 → 0.783, gate green, every geography answer worse. This is what
+a prompt change that helps prose and breaks one domain looks like from the
+outside, and it is the reason the harness slices before it congratulates you.
+
 ---
 
 ## Architecture
@@ -127,7 +153,13 @@ real regression ships.
                                     │   │  sign test           │   │  threshold search│
                                     │   └──────────┬───────────┘   └──────────────────┘
                                     │              │
-                                    │              v
+                                    │              ├─────────────> ┌──────────────────┐
+                                    │              │               │ slices           │
+                                    │              │               │  one delta per   │
+                                    │              │               │  tag, Bonferroni │
+                                    │              │               │  + Holm over the │
+                                    │              │               │  family          │
+                                    │              v               └──────────────────┘
                                     │   ┌──────────────────────┐
                                     └──>│ gate                 │  fingerprints must match
                                         │  exit 0 / 1 / 2      │  or the delta is meaningless
@@ -202,6 +234,24 @@ Exit codes are `0` pass, `1` regression (or an eval set too weak to detect one),
 `2` operator error — a missing file, an unknown scorer, a dataset that changed
 underneath you.
 
+**Tag your cases, then gate on the slices too.** The gate above watches one
+number for the whole eval set, which is exactly the number a lopsided change
+leaves alone:
+
+```yaml
+- name: And check that no single slice regressed behind a flat average
+  run: |
+    evalharness slices evals/baseline.json runs/candidate.json \
+                       --scorer judge \
+                       --fail-on-hidden
+```
+
+`--fail-on-hidden` exits 1 only when a slice regressed *and* the aggregate did
+not — a regression the gate already caught should not fail the build twice.
+Slices smaller than `--min-cases` (default 5) are printed as untested rather
+than passed over, because "we could not tell" and "it is fine" are different
+statements and only one of them is true.
+
 ### Commands
 
 | Command | What it does |
@@ -209,6 +259,7 @@ underneath you.
 | `evalharness demo` | The full guided walkthrough, no keys required |
 | `evalharness run` | Evaluate a target, print scores with intervals, optionally save the run |
 | `evalharness compare A B` | Paired A/B with a delta interval, win/loss counts and a sign test |
+| `evalharness slices A B` | The same comparison per tag, corrected for testing many slices |
 | `evalharness gate` | Pass/fail a build against a stored baseline |
 | `evalharness calibrate` | Measure the judge against human labels; `--min-kappa` makes it a check |
 | `evalharness scorers` / `datasets` | List what is registered and bundled |
@@ -253,6 +304,29 @@ it will miss a genuine regression it cannot yet resolve, and it will essentially
 never cry wolf. `cautious` fails as soon as a regression that size cannot be
 ruled out. The choice is about what is downstream: a flaky gate is worse than no
 gate, because a flaky gate gets disabled and takes the real regressions with it.
+
+**Slicing is corrected for multiplicity, and the correction is printed.** Eight
+tag slices tested at 95% carry roughly a one-in-three chance that at least one
+of them looks significant by accident; a per-tag table without that correction
+is a machine for manufacturing regressions that are not there, and a gate wired
+to one gets muted within the month. Every slice interval is therefore widened
+for the size of the family and every sign-test p-value is Holm-adjusted. The
+correction is Bonferroni rather than Šidák because Šidák is exact only when the
+tests are independent, and tag slices overlap by construction — a case tagged
+both `numeric` and `units` sits in two of the tests at once. Boole's inequality
+needs no independence assumption, and a slightly wider interval is the right
+side to err on. The family is fixed by slice *size* before any delta is looked
+at: choosing what to correct for after seeing the results would undo the
+correction.
+
+**Slices report where their two instruments disagree.** The verdict on a slice
+comes from its widened interval, but the sign test is printed beside it and the
+two do not always agree — on eight cases the sign test cannot reach p < 0.008
+before adjustment, so it will call a real slice regression unproven. That gap
+is labelled in the output rather than resolved by dropping the weaker test: the
+honest reading of a slice whose interval fires and whose sign test does not is
+"re-run this wider before you rewrite a prompt over it", and the report says so
+in those words.
 
 **The gate measures its own resolving power.** Both modes are blind if the eval
 set is too small to detect the tolerance in the first place, and that failure is
@@ -340,6 +414,11 @@ own behaviour is verifiable.
 - **A green gate is not proof of quality.** It is proof that a regression larger
   than your tolerance was not detected by this eval set. `--require-mde` exists
   so the difference between those two statements is visible.
+- **A clean slice report is not proof that nothing regressed.** It covers the
+  tags you happened to write down. A slice nobody tagged — a language, a
+  customer segment, a document format — is invisible to it, and so is any slice
+  under `--min-cases`. The report lists what it could not test; it cannot list
+  what was never labelled.
 
 ---
 
@@ -349,15 +428,16 @@ own behaviour is verifiable.
 uv venv --python 3.12 .venv
 uv pip install -p .venv/bin/python -e ".[dev]"
 
-.venv/bin/python -m pytest -q --cov --cov-report=term-missing   # 152 tests, 97% coverage
+.venv/bin/python -m pytest -q --cov --cov-report=term-missing   # 185 tests, 97% coverage
 .venv/bin/ruff check . && .venv/bin/ruff format --check .
 ```
 
 CI runs lint, the suite on Python 3.11 and 3.12, and an end-to-end job that
 points the harness at itself: the gate must block a known regression, let a
 known-good change through, report the underpowered case, refuse a drifted
-dataset, and the judge must still reach κ ≥ 0.6 against the human labels. If any
-of those stop being true, the build goes red.
+dataset, catch the slice regression that the gate itself waves through, and the
+judge must still reach κ ≥ 0.6 against the human labels. If any of those stop
+being true, the build goes red.
 
 ## License
 

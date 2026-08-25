@@ -83,10 +83,10 @@ jobs:
       - name: Run the quickstart demo
         run: .venv/bin/evalharness demo
 
-      - name: Record three runs
+      - name: Record the runs the checks below compare
         run: |
           set -euo pipefail
-          for target in baseline candidate regressed; do
+          for target in baseline candidate regressed patchy; do
             .venv/bin/evalharness run --target "$target" --out "runs/$target.json"
           done
           test -s runs/baseline.json
@@ -111,6 +111,30 @@ jobs:
           status=$?
           set -e
           test "$status" -eq 1 || { echo "expected exit 1, got $status"; exit 1; }
+
+      - name: A slice regression behind a flat aggregate is caught by 'slices' alone
+        run: |
+          set -euo pipefail
+          # The gate must wave 'patchy' through — its aggregate really is flat —
+          # and the slice report must still find the broken slice underneath.
+          .venv/bin/evalharness gate \
+            --baseline runs/baseline.json \
+            --candidate runs/patchy.json \
+            --tolerance 0.02
+          set +e
+          .venv/bin/evalharness slices runs/baseline.json runs/patchy.json \
+            --fail-on-hidden --json | tee slices.json
+          status=${PIPESTATUS[0]}
+          set -e
+          test "$status" -eq 1 || { echo "expected exit 1, got $status"; exit 1; }
+          python - <<'PY'
+          import json, pathlib
+          payload = json.loads(pathlib.Path("slices.json").read_text())
+          assert payload["hidden_regressions"] == ["geography"], payload["hidden_regressions"]
+          assert payload["aggregate"]["direction"] == "inconclusive"
+          assert payload["per_slice_confidence"] > payload["confidence"]
+          assert [s["tag"] for s in payload["skipped"]] == ["engineering", "math"]
+          PY
 
       - name: An eval set too small to resolve the tolerance is reported, not hidden
         run: |
