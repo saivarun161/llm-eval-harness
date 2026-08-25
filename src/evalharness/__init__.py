@@ -16,7 +16,14 @@ from .dataset import Dataset, list_builtins, load_dataset
 from .gate import GateResult, evaluate_gate
 from .runner import ScoreSummary, evaluate, summarize, summarize_by_tag
 from .scorers import DEFAULT_SCORERS, Verdict, available, get_scorer, register
-from .stats import Interval, bootstrap_mean, bootstrap_paired_delta, cohens_kappa
+from .slices import SliceComparison, SliceReport, compare_by_tag
+from .stats import (
+    Interval,
+    bootstrap_mean,
+    bootstrap_paired_delta,
+    cohens_kappa,
+    holm_adjusted,
+)
 from .store import load_run, save_run
 from .targets import PROFILES, resolve_target
 from .types import Case, CaseScore, Prediction, RunResult
@@ -38,6 +45,8 @@ __all__ = [
     "Prediction",
     "RunResult",
     "ScoreSummary",
+    "SliceComparison",
+    "SliceReport",
     "Verdict",
     "__version__",
     "available",
@@ -46,10 +55,12 @@ __all__ = [
     "calibrate",
     "cohens_kappa",
     "compare_all",
+    "compare_by_tag",
     "compare_runs",
     "evaluate",
     "evaluate_gate",
     "get_scorer",
+    "holm_adjusted",
     "list_builtins",
     "load_dataset",
     "load_labels",

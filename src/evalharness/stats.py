@@ -176,6 +176,48 @@ def binomial_two_sided_p(successes: int, trials: int, p: float = 0.5) -> float:
     return min(1.0, total)
 
 
+def holm_adjusted(p_values: Sequence[float]) -> list[float]:
+    """Holm-Bonferroni step-down adjustment, returned in input order.
+
+    Testing eight slices at 5% gives a one-in-three chance of at least one
+    false alarm, and a per-slice report is exactly the place that happens.
+    Holm controls the family-wise error rate under *arbitrary* dependence
+    between the tests, which matters here because slices share cases: a case
+    tagged both ``numeric`` and ``units`` is in two of the tests at once.
+
+    Adjusted values are forced non-decreasing along the sorted order, so a
+    p-value can never be reported as more significant than a smaller one.
+    """
+    m = len(p_values)
+    if m == 0:
+        return []
+    for p in p_values:
+        if not 0.0 <= p <= 1.0:
+            raise ValueError(f"p-values must be in [0, 1], got {p!r}")
+    order = sorted(range(m), key=lambda i: p_values[i])
+    adjusted = [0.0] * m
+    running = 0.0
+    for rank, index in enumerate(order):
+        running = max(running, min(1.0, (m - rank) * p_values[index]))
+        adjusted[index] = running
+    return adjusted
+
+
+def bonferroni_confidence(confidence: float, tests: int) -> float:
+    """The per-test confidence level that holds ``confidence`` over ``tests``.
+
+    Bonferroni rather than Šidák: Šidák is exact only when the tests are
+    independent, and overlapping tag slices are anything but. Boole's
+    inequality needs no independence assumption at all, and the cost — a
+    slightly wider interval — is the right side to err on for a report whose
+    whole job is to not cry wolf.
+    """
+    if tests <= 1:
+        return confidence
+    alpha = 1.0 - confidence
+    return 1.0 - alpha / tests
+
+
 def cohens_kappa(
     a: Sequence[int],
     b: Sequence[int],

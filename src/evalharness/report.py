@@ -12,6 +12,7 @@ from .calibration import LABEL_NAMES, Calibration
 from .compare import Comparison
 from .gate import GateResult
 from .runner import ScoreSummary
+from .slices import SliceReport
 from .types import RunResult
 
 RULE = "=" * 78
@@ -74,6 +75,66 @@ def render_comparison(comparison: Comparison) -> str:
         lines.append(
             "  The interval straddles zero: this difference is not distinguishable "
             "from resampling noise."
+        )
+    return "\n".join(lines)
+
+
+def render_slice_report(report: SliceReport) -> str:
+    """The per-tag table, with the aggregate above it for contrast."""
+    verdict = {"improvement": "IMPROVED", "regression": "REGRESSED", "inconclusive": "FLAT"}
+    aggregate = report.aggregate
+    lines = [
+        f"{aggregate.candidate_name} vs {aggregate.baseline_name} on "
+        f"'{report.scorer}', sliced by tag",
+        RULE,
+        f"  whole set  n={aggregate.n:<4} delta {aggregate.delta.format()}  "
+        f"{verdict[aggregate.direction]}",
+        "",
+    ]
+    if not report.slices:
+        lines.append("  No slice is large enough to test.")
+    else:
+        level = f"{report.per_slice_confidence:.2%}".rstrip("0").rstrip(".")
+        lines.append(
+            f"{'tag':<14}{'n':>4} {'share':>7}  {'delta':>7}  "
+            f"{'interval':>18}  {'holm p':>8}  verdict"
+        )
+        lines.append(THIN)
+        for item in report.slices:
+            delta = item.comparison.delta
+            lines.append(
+                f"{item.tag:<14}{item.n:>4} {item.share:>6.0%}  {delta.point:>7.3f}  "
+                f"[{delta.lo:>6.3f}, {delta.hi:>6.3f}]  {item.adjusted_p:>8.4f}  "
+                f"{verdict[item.direction]}"
+            )
+        lines.append("")
+        lines.append(
+            f"  Intervals are {level} per slice, so that all {report.family_size} "
+            f"together hold {report.confidence:.0%}."
+        )
+
+    if report.skipped:
+        untested = ", ".join(f"{tag} (n={n})" for tag, n in report.skipped)
+        lines.append(
+            f"  Untested, under {report.min_cases} cases: {untested}. "
+            "Too small to resolve anything, not known to be fine."
+        )
+
+    shaky = report.uncorroborated
+    if shaky:
+        names = ", ".join(f"'{item.tag}'" for item in shaky)
+        lines.append(
+            f"  {names}: the interval fires, the adjusted sign test does not. "
+            "Re-run wider before acting."
+        )
+
+    hidden = report.hidden_regressions
+    if hidden:
+        names = ", ".join(f"'{item.tag}'" for item in hidden)
+        lines.append("")
+        lines.append(
+            f"  The aggregate is not a regression, but {names} is. "
+            "A headline mean would have shipped this."
         )
     return "\n".join(lines)
 
